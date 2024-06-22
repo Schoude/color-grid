@@ -26,7 +26,6 @@ async function makeApiCall() {
   startIndex.value = 0;
   images.value = [];
   const apiCallCountMax = 4;
-  console.log(import.meta.env);
 
   for (let i = 0; i < apiCallCountMax; i++) {
     const response = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${seId}&q=${query.value}&searchType=image&start=${startIndex.value}`);
@@ -53,8 +52,7 @@ async function colorizeImageElements(refs: Record<string, HTMLElement[]>) {
     const theImage = document.querySelector(`.${imgKey}`) as HTMLImageElement;
     const overlay = theImage.nextElementSibling as HTMLElement;
     const imageUrl = theImage.src;
-    const googleProxyURL =
-          'https://corsproxy.io/?'
+    const googleProxyURL = 'https://corsproxy.io/?';
 
     theImage.crossOrigin = 'Anonymous';
     theImage.src = googleProxyURL + encodeURIComponent(imageUrl);
