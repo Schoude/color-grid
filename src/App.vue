@@ -1,15 +1,40 @@
 <script setup lang="ts">
-import { getCurrentInstance, ref } from 'vue';
-import Google from "./components/Google.vue";
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
 import ColorThief from 'colorthief';
-const v$ = getCurrentInstance();
-const query = ref(null);
-const startIndex = ref(0);
-const images = ref<{thumbnailLink: string; link: string;}[]>([]);
+import { useIdle } from '@vueuse/core';
+import Google from './components/Google.vue';
 
-const apiKey = import.meta.env.VITE_API_KEY;
-const seId = import.meta.env.VITE_SE_ID;
+interface ImageResult {
+  thumbnail: string;
+  thumbnail_token: string;
+}
+
+const images = ref<{ hex: string }[]>([]);
+const wall = ref<null | ComponentPublicInstance>(null);
+const search$ = ref<null | HTMLInputElement>(null);
+const query = ref(null);
+const loading = ref(false);
+
+const showForm = ref(true);
+
 const colorThief = new ColorThief();
+
+const { idle } = useIdle(1000, {
+  initialState: false,
+});
+
+const showClearButton = computed(() => query.value != null && query.value !== '');
+
+watch(idle, (idleValue) => {
+  if (idleValue) {
+    showForm.value = false;
+  } else {
+    showForm.value = true;
+    search$.value?.focus();
+  }
+}, {
+  immediate: true,
+});
 
 const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map(x => {
   const hex = x.toString(16);
@@ -17,58 +42,55 @@ const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map(x => {
 }).join('');
 
 async function search() {
-  await makeApiCall();
-  const currentRefs = v$!.refs as Record<string, HTMLElement[]>;
-  colorizeImageElements(currentRefs);
-}
+  if (query.value == null || loading.value) {
+    return;
+  }
 
-async function makeApiCall() {
-  startIndex.value = 0;
-  images.value = [];
-  const apiCallCountMax = 4;
+  loading.value = true;
 
-  for (let i = 0; i < apiCallCountMax; i++) {
-    const response = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${seId}&q=${query.value}&searchType=image&start=${startIndex.value}`);
+  const svgEL = wall.value?.$el as SVGElement;
+  // const rects = svgEL.querySelectorAll<SVGRectElement>('rect.canvas');
+  // const rectsArr = Array.from(rects);
 
-    const data = await response.json();
-    startIndex.value = data.queries.nextPage[0].startIndex;
+  // rectsArr.reverse();
 
-    data.items.forEach((imgItem: {
-        image: {
-          thumbnailLink: string;
-        };
-        link: string;
-      }) => {
-      images.value.push({link: imgItem.link, thumbnailLink: imgItem.image.thumbnailLink});
-    });
+  try {
+    const results = await makeApiCall(query.value);
+    console.log(results);
+
+    colorizeRectElements(results);
+  } catch (error) {
+    console.log(error);
+  } finally {
+    loading.value = false;
   }
 }
 
-async function colorizeImageElements(refs: Record<string, HTMLElement[]>) {
-  const imgKeys = Object.keys(refs);
-  const paletteIndex = Math.floor(Math.random() * 3);
+async function makeApiCall(q: string) {
+  const res = await fetch(`https://close-starfish-42.deno.dev/?q=${encodeURIComponent(q)}`);
 
-  for (const imgKey of imgKeys) {
-    const theImage = document.querySelector(`.${imgKey}`) as HTMLImageElement;
-    const overlay = theImage.nextElementSibling as HTMLElement;
-    const imageUrl = theImage.src;
-    const googleProxyURL = 'https://corsproxy.io/?';
+  return await res.json() as ImageResult[];
+}
 
-    theImage.crossOrigin = 'Anonymous';
-    theImage.src = googleProxyURL + encodeURIComponent(imageUrl);
+async function colorizeRectElements(imageData: ImageResult[]) {
+  imageData.forEach((image, index) => {
+    const tempImg = document.createElement('img');
+    const paletteIndex = Math.floor(Math.random() * 3);
 
-    if (theImage.complete) {
-      const rbg = colorThief.getPalette(theImage)[paletteIndex];
+    const proxyUrl = 'https://corsproxy.io/?';
+
+    tempImg.crossOrigin = 'Anonymous';
+    tempImg.src = proxyUrl + encodeURIComponent(image.thumbnail);
+
+    tempImg.onload = () => {
+      const rbg = colorThief.getPalette(tempImg)[paletteIndex];
       const hex = rgbToHex(rbg[0], rbg[1], rbg[2]);
-      overlay.style.backgroundColor = hex;
-    } else {
-      theImage.addEventListener('load', function() {
-        const rbg = colorThief.getPalette(theImage)[paletteIndex];
-        const hex = rgbToHex(rbg[0], rbg[1], rbg[2]);
-        overlay.style.backgroundColor = hex;
-      });
+
+      images.value.push({ hex });
+
+      tempImg.remove()
     }
-  }
+  });
 }
 </script>
 
@@ -85,15 +107,13 @@ async function colorizeImageElements(refs: Record<string, HTMLElement[]>) {
       </div>
       <div class="buttons-container">
         <button class="search" type="submit" :disabled="query == null" title="Vibrant Colors">Google Search</button>
-        <button class="feeling-lucky" type="submit" :disabled="query == null" title="Muted Colors">I'm Feeling Lucky</button>
+        <button class="feeling-lucky" type="submit" :disabled="query == null" title="Muted Colors">I'm Feeling
+          Lucky</button>
       </div>
     </form>
 
     <div class="content">
-      <div class="wrapper" v-for="(img, i) of images">
-        <img :ref="`image-${i}`" :src="img.thumbnailLink" alt="" class="cors-image" :class="`image-${i}`">
-        <div class="overlay" :key="`overlay_${i}`"></div>
-      </div>
+      <div v-for="(img, i) of images" class="overlay" :style="{ backgroundColor: img.hex }" :key="`overlay_${i}`"></div>
     </div>
   </main>
 </template>
@@ -196,32 +216,7 @@ main
   @media only screen and (min-width: 300px) and (max-width: 768px)
     grid-template-columns: repeat(2, 1fr)
 
-  .wrapper
-    display: inline-block
-    position: relative
-    margin: auto
-    max-width: 350px
-    max-height: 190px
-
-    img
-      width: inherit
-      max-width: inherit
-      max-height: inherit
-      opacity: 0
-      transition: all 0.3s ease
-
-    .overlay
-      position: absolute
-      top: 0
-      bottom: 0
-      left: 0
-      right: 0
-      transition: all .3s ease
-      cursor: pointer
-      &:hover,
-      &:hover ~ img
-        opacity: 0.2
-      &:hover
-        box-shadow: 0 0 12px 2px rgba(black, .5)
-        transform: scale(1.05)
+  .overlay
+    width: 100%
+    height: 190px
 </style>
