@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch, type ComponentPublicInstance } from 'vue';
+import { ref } from 'vue';
 import ColorThief from 'colorthief';
-import { useIdle } from '@vueuse/core';
 import Google from './components/Google.vue';
 
 interface ImageResult {
@@ -10,31 +9,10 @@ interface ImageResult {
 }
 
 const images = ref<{ hex: string }[]>([]);
-const wall = ref<null | ComponentPublicInstance>(null);
-const search$ = ref<null | HTMLInputElement>(null);
 const query = ref(null);
 const loading = ref(false);
 
-const showForm = ref(true);
-
 const colorThief = new ColorThief();
-
-const { idle } = useIdle(1000, {
-  initialState: false,
-});
-
-const showClearButton = computed(() => query.value != null && query.value !== '');
-
-watch(idle, (idleValue) => {
-  if (idleValue) {
-    showForm.value = false;
-  } else {
-    showForm.value = true;
-    search$.value?.focus();
-  }
-}, {
-  immediate: true,
-});
 
 const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map(x => {
   const hex = x.toString(16);
@@ -47,12 +25,6 @@ async function search() {
   }
 
   loading.value = true;
-
-  const svgEL = wall.value?.$el as SVGElement;
-  // const rects = svgEL.querySelectorAll<SVGRectElement>('rect.canvas');
-  // const rectsArr = Array.from(rects);
-
-  // rectsArr.reverse();
 
   try {
     const results = await makeApiCall(query.value);
