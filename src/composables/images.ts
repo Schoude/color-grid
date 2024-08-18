@@ -7,7 +7,8 @@ export interface ImageResult {
   thumbnail_token: string;
 }
 
-const images = ref<{ hex: string }[]>([]);
+const query = ref<string | null>(null);
+const images = ref<{ hex: string, flexBasis: string; }[]>([]);
 
 export function useImages() {
 
@@ -16,8 +17,15 @@ export function useImages() {
     return hex.length === 1 ? '0' + hex : hex
   }).join('');
 
+  function getRandomWidth() {
+    const randomFraction = Math.random();
+    const randomValue = 190 + randomFraction * (310 - 190);
+
+    return `${Math.floor(randomValue)}px`;
+  }
+
   async function colorizeRectElements(imageData: ImageResult[]) {
-    imageData.forEach((image, index) => {
+    imageData.forEach(image => {
       const tempImg = document.createElement('img');
       const paletteIndex = Math.floor(Math.random() * 3);
 
@@ -30,16 +38,22 @@ export function useImages() {
         const rbg = colorThief.getPalette(tempImg)[paletteIndex];
         const hex = rgbToHex(rbg[0], rbg[1], rbg[2]);
 
-        images.value.push({ hex });
+        images.value.push({ hex, flexBasis: getRandomWidth() });
 
         tempImg.remove()
       }
     });
   }
 
+  function clear() {
+    images.value = [];
+    query.value = '';
+  }
 
   return {
+    query,
     images,
     colorizeRectElements,
+    clear,
   }
 }
