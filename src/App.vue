@@ -8,8 +8,10 @@ const images$ = useImages();
 
 <template>
   <main>
-    <SearchView v-if="images$.images.value.length === 0" />
-    <ResulstsView v-else />
+    <Transition mode="out-in">
+      <SearchView v-if="images$.images.value.length === 0" />
+      <ResulstsView v-else />
+    </Transition>
   </main>
 </template>
 
@@ -47,4 +49,12 @@ button
     background-color: #f8f8f8
     border: 1px solid #c6c6c6
     color: #222
+
+.v-enter-active,
+.v-leave-active
+  transition: opacity 0.5s ease
+
+.v-enter-from,
+.v-leave-to
+  opacity: 0
 </style>

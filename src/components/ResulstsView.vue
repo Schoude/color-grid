@@ -7,17 +7,19 @@ const images$ = useImages();
 </script>
 
 <template>
-  <header class="search">
-    <div class="logo">
-      <Google />
-    </div>
-    <SearchBar v-model="images$.query.value" />
-    <button type="button" @click="images$.clear">Go Back</button>
-  </header>
-  <main class="results">
-    <div v-for="(img, i) of images$.images.value" class="overlay"
-      :style="{ backgroundColor: img.hex, flexBasis: img.flexBasis }" :key="`overlay_${i}`"></div>
-  </main>
+  <div class="results-view">
+    <header class="search">
+      <div class="logo" @click="images$.clear">
+        <Google />
+      </div>
+      <SearchBar v-model="images$.query.value" />
+      <button type="button" @click="images$.clear">Go Back</button>
+    </header>
+    <main class="results">
+      <div v-for="(img, i) of images$.images.value" class="overlay"
+        :style="{ backgroundColor: img.hex, flexBasis: img.flexBasis }" :key="`overlay_${i}`"></div>
+    </main>
+  </div>
 </template>
 
 <style lang='sass' scoped>
@@ -29,6 +31,8 @@ const images$ = useImages();
   margin-block-end: 2rem
 
 .logo
+  cursor: pointer
+
   svg
     inline-size: 140px
 
