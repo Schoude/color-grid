@@ -53,6 +53,10 @@ async function makeApiCall(q: string) {
 <style lang='sass' scoped>
 main
   margin-top: 60px
+  margin-inline: 1rem
+
+  @media only screen and (width >= 768px)
+    margin-inline: 0
 
 .logo
   margin: 0 auto

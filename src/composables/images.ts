@@ -8,7 +8,7 @@ export interface ImageResult {
 }
 
 const query = ref<string | null>(null);
-const images = ref<{ hex: string, flexBasis: string; }[]>([]);
+const images = ref<{ hex: string, width: string; height: string }[]>([]);
 
 export function useImages() {
   const rgbToHex = (r: number, g: number, b: number) => '#' + [r, g, b].map(x => {
@@ -17,8 +17,18 @@ export function useImages() {
   }).join('');
 
   function getRandomWidth() {
+    const isPhone = window.innerWidth < 768;
+
+    let maxValue = 310;
+    let minValue = 145;
+
+    if (isPhone) {
+      maxValue = 125;
+      minValue = 75;
+    }
+
     const randomFraction = Math.random();
-    const randomValue = 190 + randomFraction * (310 - 190);
+    const randomValue = minValue + randomFraction * (maxValue - minValue);
 
     return `${Math.floor(randomValue)}px`;
   }
@@ -37,7 +47,7 @@ export function useImages() {
         const rbg = colorThief.getPalette(tempImg)[paletteIndex];
         const hex = rgbToHex(rbg[0], rbg[1], rbg[2]);
 
-        images.value.push({ hex, flexBasis: getRandomWidth() });
+        images.value.push({ hex, width: getRandomWidth(), height: getRandomWidth() });
 
         tempImg.remove()
       }

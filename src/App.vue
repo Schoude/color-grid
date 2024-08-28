@@ -7,12 +7,10 @@ const images$ = useImages();
 </script>
 
 <template>
-  <main>
-    <Transition mode="out-in">
-      <SearchView v-if="images$.images.value.length === 0" />
-      <ResulstsView v-else />
-    </Transition>
-  </main>
+  <Transition mode="out-in">
+    <SearchView v-if="images$.images.value.length === 0" />
+    <ResulstsView v-else />
+  </Transition>
 </template>
 
 <style lang="sass">
